@@ -1,9 +1,13 @@
 # Changelog
 
-## v2.0.1 — 2026-11-16 — Ansible install on Intel Macs
+## v2.0.1 — 2026-11-16 — Ansible install on Intel Macs, AWS Free plan
 **Fixed**
+- First real `make all` failed at `aws_instance.demo`: `InvalidParameterCombination: The specified instance type is not eligible for Free Tier`. AWS accounts on the Free plan can only launch free-tier-eligible types, and t3.medium is not one. Documented the fix in the README: list eligible types, then `TF_VAR_instance_type=<type> make all` (2 vCPU / 4 GB or more), or upgrade the account. The security group created before the error stays in the Terraform state and is reused.
 - `brew install ansible` hangs for hours on Intel Macs: Homebrew no longer builds bottles for macOS x86_64, so it compiles LLVM and Rust from source. README step 0 now installs `ansible-core` with pip in `~/.ansible-venv` (prebuilt wheels, about 1 minute). The playbook only uses `ansible.builtin` modules, so `ansible-core` is enough.
 - `run-all.sh` "tool missing" message points to README step 0 instead of `brew install ansible`.
+
+**Added**
+- `docs/TEACHING-GUIDE.md`: architecture, one-sentence explanation per tool, a 10-step check list after `make all`, a 45-minute live demo script (live change, failing test, self-healing, scaling, rollback, monitoring, cleanup) and student exercises. Linked from the README.
 
 ## v2.0.0 — 2026-11-16 — GitHub Actions CI/CD + one command
 **Problems found (diagnosis)**

@@ -10,7 +10,7 @@ variable "project_name" {
 }
 
 variable "instance_type" {
-  description = "EC2 size. t3.medium (2 vCPU / 4 GB) is the minimum for K3s + monitoring (+ optional Jenkins)"
+  description = "EC2 size. Needs 2 vCPU / 4 GB for K3s + monitoring. AWS Free-plan accounts: use a free-tier-eligible type such as c7i-flex.large (set TF_VAR_instance_type)"
   type        = string
   default     = "t3.medium"
 }
