@@ -26,15 +26,24 @@ echo "GitHub user: $(gh api user -q .login) | AWS region: $REGION"
 say "3. SSH key depi-test.pem"
 [ -f "$KEY" ] || { mkdir -p ~/.ssh; cp ~/Downloads/depi-test.pem "$KEY" || die "depi-test.pem not in ~/.ssh or ~/Downloads"; }
 chmod 400 "$KEY"
-# Key pairs live in ONE region. If depi-test is not in this region, Terraform imports it from the .pem.
+# Key pairs live in ONE region. Import depi-test from the .pem only if this region does not have it.
+if aws ec2 describe-key-pairs --key-names depi-test >/dev/null 2>&1; then
+  echo "key pair depi-test found in $REGION"
+else
+  ssh-keygen -y -f "$KEY" > "$HOME/.ssh/depi-test.pub"
+  aws ec2 import-key-pair --key-name depi-test --public-key-material "fileb://$HOME/.ssh/depi-test.pub" >/dev/null \
+    && echo "imported key pair depi-test into $REGION" \
+    || echo "could not import depi-test (maybe it already exists) - continuing"
+fi
+# Remember the server size so a later run never changes it by accident.
+# Free-plan AWS accounts: TF_VAR_instance_type=c7i-flex.large make all   (see README)
+OLD_TYPE="$(sed -n 's/^instance_type *= *"\(.*\)"/\1/p' terraform/terraform.tfvars 2>/dev/null || true)"
+TYPE="${TF_VAR_instance_type:-${OLD_TYPE:-t3.medium}}"
 { echo "aws_region       = \"$REGION\""
   echo "private_key_path = \"$KEY\""
-  if ! aws ec2 describe-key-pairs --region "$REGION" --key-names depi-test >/dev/null 2>&1 \
-     || grep -q aws_key_pair terraform/terraform.tfstate 2>/dev/null; then
-    echo "public_key       = \"$(ssh-keygen -y -f "$KEY")\""
-  fi
+  echo "instance_type    = \"$TYPE\""
 } > terraform/terraform.tfvars
-echo "using $KEY"
+echo "using $KEY, server type $TYPE"
 
 say "4. Terraform: create the EC2 server"
 cd terraform

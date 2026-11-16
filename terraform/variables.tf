@@ -16,7 +16,7 @@ variable "instance_type" {
 }
 
 variable "key_name" {
-  description = "Name of an EXISTING EC2 key pair in this region (you hold its .pem file)"
+  description = "Name of the EC2 key pair in this region (run-all.sh imports it from your .pem if it is missing)"
   type        = string
   default     = "depi-test"
 }
@@ -25,12 +25,6 @@ variable "private_key_path" {
   description = "Path to your SSH private key (written into the Ansible inventory)"
   type        = string
   default     = "~/.ssh/depi-test.pem"
-}
-
-variable "public_key" {
-  description = "Leave empty to use the existing key pair. Set to an OpenSSH public key to import it as key_name."
-  type        = string
-  default     = ""
 }
 
 variable "allowed_cidr" {
