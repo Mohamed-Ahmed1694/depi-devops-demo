@@ -10,7 +10,7 @@ from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_
 # ✏️  EDIT THESE TWO LINES, commit and push -> watch it deploy
 # ============================================================
 MESSAGE = "Hello DEPI students! 👋"
-BG_COLOR = "#1e3a8a"   # try "#065f46" (green) or "#7c2d12" (orange)
+BG_COLOR = "#065f46"   # try "#065f46" (green) or "#7c2d12" (orange)
 # ============================================================
 
 APP_VERSION = os.getenv("APP_VERSION", "dev")
