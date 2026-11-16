@@ -37,8 +37,17 @@ else
 fi
 # Remember the server size so a later run never changes it by accident.
 # Free-plan AWS accounts: TF_VAR_instance_type=c7i-flex.large make all   (see README)
+# Order: TF_VAR_instance_type > saved in tfvars > free-tier type with 2 vCPU / 4 GB+ > t3.medium
 OLD_TYPE="$(sed -n 's/^instance_type *= *"\(.*\)"/\1/p' terraform/terraform.tfvars 2>/dev/null || true)"
-TYPE="${TF_VAR_instance_type:-${OLD_TYPE:-t3.medium}}"
+TYPE="${TF_VAR_instance_type:-$OLD_TYPE}"
+if [ -z "$TYPE" ]; then
+  TYPE="$(aws ec2 describe-instance-types --output text \
+    --filters Name=free-tier-eligible,Values=true Name=vcpu-info.default-vcpus,Values=2 \
+              Name=processor-info.supported-architecture,Values=x86_64 \
+    --query 'InstanceTypes[?MemoryInfo.SizeInMiB>=`4096`].InstanceType' 2>/dev/null \
+    | tr '\t' '\n' | sort | head -1 || true)"
+  TYPE="${TYPE:-t3.medium}"
+fi
 { echo "aws_region       = \"$REGION\""
   echo "private_key_path = \"$KEY\""
   echo "instance_type    = \"$TYPE\""

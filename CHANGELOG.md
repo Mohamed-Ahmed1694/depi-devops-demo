@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.1.1 — 2026-11-16 — Pick a server type that the account allows
+**Fixed**
+- After the VPC fix, `make all` created the network but failed again with `instance type is not eligible for Free Tier`. The earlier `TF_VAR_instance_type=c7i-flex.large` run used the script from before v2.0.2, which did not save the type, so this run fell back to t3.medium.
+- Server type order is now: `TF_VAR_instance_type` ➜ value saved in `terraform.tfvars` ➜ **the first free-tier-eligible x86_64 type with 2 vCPU and 4 GB+ in the region (asked from AWS)** ➜ t3.medium. A Free-plan account now works with plain `make all`.
+- Note: on a paid account this also picks the free-tier type (e.g. c7i-flex.large) instead of t3.medium. Set `TF_VAR_instance_type=t3.medium` once if you prefer it; it is then remembered.
+
+**Tested**: the selection with a fake `aws` CLI in 5 cases (free-tier list, saved value, AWS query fails, TF_VAR wins, empty list). shellcheck passed.
+
 ## v2.1.0 — 2026-11-16 — Own VPC (fixes SSH timeout)
 **Found with `make doctor`**
 - Server running, health checks ok, port 22 open in the security group, key fingerprint matches AWS, laptop can SSH to GitHub. But the account's default VPC (`172.31.0.0/16`) had **no `0.0.0.0/0 ➜ internet gateway` route**, so the server was unreachable from the internet and could not reach it either (apt would also fail). That VPC's network ACL also has custom rules, so it was changed earlier, probably in another lab.
