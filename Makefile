@@ -31,7 +31,10 @@ ssh: ## Log in to the server
 status: ## Show the pods on the server
 	$(SSH) 'sudo k3s kubectl get pods -A'
 
+doctor: ## Find why SSH/Ansible can't reach the server (read-only)
+	./scripts/doctor.sh
+
 destroy: ## DELETE the EC2 (do this after the lesson!)
 	cd terraform && terraform destroy
 
-.PHONY: help all check test local-up local-down configure ssh status destroy
+.PHONY: help all check test local-up local-down configure ssh status doctor destroy
