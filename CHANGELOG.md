@@ -1,5 +1,17 @@
 # Changelog
 
+## v2.1.0 — 2026-11-16 — Own VPC (fixes SSH timeout)
+**Found with `make doctor`**
+- Server running, health checks ok, port 22 open in the security group, key fingerprint matches AWS, laptop can SSH to GitHub. But the account's default VPC (`172.31.0.0/16`) had **no `0.0.0.0/0 ➜ internet gateway` route**, so the server was unreachable from the internet and could not reach it either (apt would also fail). That VPC's network ACL also has custom rules, so it was changed earlier, probably in another lab.
+
+**Fixed**
+- Terraform now creates its own network and no longer uses the default VPC: `aws_vpc` (10.20.0.0/16), `aws_internet_gateway`, public `aws_subnet` (10.20.1.0/24, public IP on launch, in an Availability Zone that offers the chosen instance type), `aws_route_table` with `0.0.0.0/0 ➜ igw`, and the association. The security group and the EC2 are placed in it. The account's default VPC is not touched.
+- On an existing setup the plan **replaces** the server and the security group (they move to the new VPC), so the server gets a new IP. `make all` writes the new IP into Ansible and GitHub.
+
+**Docs**: README tool table + troubleshooting, teaching guide (VPC / gateway / route explained).
+
+**Tested**: `terraform fmt` and `terraform validate` with the real AWS provider 5.100.0 (downloaded from releases.hashicorp.com). `terraform plan` was not run here (needs your AWS credentials).
+
 ## v2.0.3 — 2026-11-16 — `make doctor`
 **Context**
 - The server was created (eu-north-1, `13.61.24.143`), but Ansible failed: `ssh: connect to host ... port 22: Operation timed out` after 309 s. The cause is not known yet; it needs data from the AWS account and the laptop.
