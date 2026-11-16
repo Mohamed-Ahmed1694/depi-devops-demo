@@ -4,6 +4,8 @@ One small project that shows how **Linux, Terraform, AWS, Ansible, Docker, K3s, 
 
 > **The story:** change one line ➜ `git push` ➜ **GitHub Actions** tests, builds and deploys it to **K3s** on an **AWS** server ➜ students see the new version ➜ **Prometheus + Grafana** show the traffic.
 
+> 🎓 **Teachers:** how to check it works, how to explain each tool, and a 45-minute live demo script are in [docs/TEACHING-GUIDE.md](docs/TEACHING-GUIDE.md).
+
 ## 🧭 Architecture
 
 ```mermaid
@@ -118,6 +120,7 @@ make destroy
 | Problem | Fix |
 |---|---|
 | `brew install ansible` runs for hours | Stop it (Ctrl+C) and use the `pip` commands in step 0 |
+| `InstanceType ... not eligible for Free Tier` | New AWS accounts on the Free plan can't start t3.medium. List allowed types: `aws ec2 describe-instance-types --filters Name=free-tier-eligible,Values=true --query "InstanceTypes[].[InstanceType,VCpuInfo.DefaultVCpus,MemoryInfo.SizeInMiB]" --output table`, pick one with 2 vCPU and 4 GB or more (e.g. `c7i-flex.large`), then `TF_VAR_instance_type=<type> make all`. Or upgrade the account to a paid plan. |
 | `No AWS region` | `aws configure set region <your-region>` |
 | Push of the workflow refused | `gh auth refresh -s workflow` |
 | `Push refused` | `git pull --rebase origin main`, then `make all` |
