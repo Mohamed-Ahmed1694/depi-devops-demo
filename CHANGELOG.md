@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.0.1 — 2026-11-16 — Ansible install on Intel Macs
+**Fixed**
+- `brew install ansible` hangs for hours on Intel Macs: Homebrew no longer builds bottles for macOS x86_64, so it compiles LLVM and Rust from source. README step 0 now installs `ansible-core` with pip in `~/.ansible-venv` (prebuilt wheels, about 1 minute). The playbook only uses `ansible.builtin` modules, so `ansible-core` is enough.
+- `run-all.sh` "tool missing" message points to README step 0 instead of `brew install ansible`.
+
 ## v2.0.0 — 2026-11-16 — GitHub Actions CI/CD + one command
 **Problems found (diagnosis)**
 - The GitHub repo had only the old Jenkins version (1 commit). `.github/workflows/`, `Makefile`, `scripts/run-all.sh` and `scripts/deploy-on-server.sh` did not exist, although the README pointed to them. GitHub Actions had never run (0 runs).
