@@ -1,0 +1,66 @@
+---
+- name: Install Java 21 (required by current Jenkins LTS)
+  ansible.builtin.apt:
+    name: [fontconfig, openjdk-21-jre]
+    state: present
+
+- name: Make sure the apt keyrings folder exists
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+
+- name: Add Jenkins apt key (2026 signing key)
+  ansible.builtin.get_url:
+    url: https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key
+    dest: /etc/apt/keyrings/jenkins-keyring.asc
+    mode: "0644"
+
+- name: Add Jenkins LTS apt repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/"
+    filename: jenkins
+    state: present
+
+- name: Install Jenkins
+  ansible.builtin.apt:
+    name: jenkins
+    state: present
+    update_cache: true
+
+- name: Allow Jenkins to use Docker
+  ansible.builtin.user:
+    name: jenkins
+    groups: docker
+    append: true
+  notify: Restart Jenkins
+
+- name: Allow Jenkins to import images into K3s (only the k3s binary, nothing else)
+  ansible.builtin.copy:
+    dest: /etc/sudoers.d/jenkins-k3s
+    content: "jenkins ALL=(root) NOPASSWD: /usr/local/bin/k3s\n"
+    mode: "0440"
+    validate: visudo -cf %s
+
+- name: Create .kube folder for Jenkins
+  ansible.builtin.file:
+    path: /var/lib/jenkins/.kube
+    state: directory
+    owner: jenkins
+    group: jenkins
+    mode: "0755"
+
+- name: Give Jenkins a kubeconfig
+  ansible.builtin.copy:
+    src: /etc/rancher/k3s/k3s.yaml
+    dest: /var/lib/jenkins/.kube/config
+    remote_src: true
+    owner: jenkins
+    group: jenkins
+    mode: "0600"
+
+- name: Start Jenkins
+  ansible.builtin.service:
+    name: jenkins
+    state: started
+    enabled: true

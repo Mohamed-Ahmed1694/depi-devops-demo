@@ -1,0 +1,32 @@
+# Local laptop demo (no AWS needed): app + Prometheus + Grafana
+#   docker compose up -d --build
+#   App http://localhost:5000 | Prometheus http://localhost:9090 | Grafana http://localhost:3000 (admin/admin)
+services:
+  app:
+    build:
+      context: ./app
+      args:
+        APP_VERSION: local
+    ports:
+      - "5000:5000"
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    volumes:
+      - ./k8s/monitoring/config/prometheus-local.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on: [app]
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - ./k8s/monitoring/config/grafana-datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml:ro
+      - ./k8s/monitoring/config/grafana-dashboard-provider.yml:/etc/grafana/provisioning/dashboards/provider.yml:ro
+      - ./k8s/monitoring/config/demo-app-dashboard.json:/var/lib/grafana/dashboards/demo-app.json:ro
+    ports:
+      - "3000:3000"
+    depends_on: [prometheus]

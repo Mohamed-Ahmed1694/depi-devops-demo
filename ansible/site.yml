@@ -1,0 +1,38 @@
+---
+# One playbook that turns a fresh Ubuntu EC2 into the full demo server:
+#   Linux basics -> Docker -> K3s -> Jenkins -> Prometheus + Grafana
+- name: Configure the DEPI DevOps demo server
+  hosts: demo
+  become: true
+  roles:
+    - common
+    - docker
+    - k3s
+    - jenkins
+
+  post_tasks:
+    - name: Copy Kubernetes manifests to the server
+      ansible.builtin.copy:
+        src: ../k8s/
+        dest: /opt/depi-demo/k8s/
+        mode: "0644"
+
+    - name: Deploy monitoring stack (Prometheus + Grafana)
+      ansible.builtin.command: k3s kubectl apply -k /opt/depi-demo/k8s/monitoring
+      register: monitoring
+      changed_when: "'configured' in monitoring.stdout or 'created' in monitoring.stdout"
+
+    - name: Read Jenkins initial admin password
+      ansible.builtin.slurp:
+        src: /var/lib/jenkins/secrets/initialAdminPassword
+      register: jenkins_pw
+      failed_when: false
+
+    - name: Show access details
+      ansible.builtin.debug:
+        msg:
+          - "Jenkins    : http://{{ inventory_hostname }}:8080"
+          - "Jenkins initial admin password: {{ (jenkins_pw.content | default('') | b64decode | trim) or 'already set up' }}"
+          - "App        : http://{{ inventory_hostname }}:30080  (after the first Jenkins build)"
+          - "Prometheus : http://{{ inventory_hostname }}:30090"
+          - "Grafana    : http://{{ inventory_hostname }}:30030  (admin / admin)"
