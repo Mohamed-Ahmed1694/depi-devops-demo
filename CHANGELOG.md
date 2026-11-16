@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.2.1 — 2026-11-16 — `make aws-check`
+**Added**
+- `scripts/aws-check.sh` / `make aws-check`: read-only check of **every** AWS region for EC2 servers, EBS disks, snapshots, Elastic IPs, NAT gateways, load balancers and non-default VPCs. Use it after `make destroy`. It deletes nothing.
+
+**Tested**: `bash -n`, shellcheck, and `make help` output. Not run against AWS from here.
+
 ## v2.2.0 — 2026-11-16 — Optional Jenkins, safe Ansible re-runs
 **Added**
 - `make jenkins`: runs the playbook with `install_jenkins=true` (Java 21, Jenkins LTS, Docker + K3s access, kubeconfig). Ansible prints the initial admin password. README section "Optional lesson — Jenkins" with the job setup.

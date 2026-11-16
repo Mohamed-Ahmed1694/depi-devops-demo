@@ -37,7 +37,10 @@ status: ## Show the pods on the server
 doctor: ## Find why SSH/Ansible can't reach the server (read-only)
 	./scripts/doctor.sh
 
+aws-check: ## List anything in AWS that costs money, in every region (read-only)
+	./scripts/aws-check.sh
+
 destroy: ## DELETE the EC2 (do this after the lesson!)
 	cd terraform && terraform destroy
 
-.PHONY: help all check test local-up local-down configure jenkins ssh status doctor destroy
+.PHONY: help all check test local-up local-down configure jenkins ssh status doctor aws-check destroy
