@@ -1,5 +1,18 @@
 # Changelog
 
+## ✅ 2026-11-16 — First full end-to-end run
+`make all` on the teacher's Mac (macOS Intel, AWS Free plan, eu-north-1, c7i-flex.large) finished:
+Terraform (own VPC + EC2) ➜ Ansible (Docker, K3s, Prometheus, Grafana, first deploy) ➜ GitHub variable/secret ➜ GitHub Actions run 43905007080: jobs 1 test, 2 build, 3 IaC checks and **4 deploy + smoke test all green** (the live `/api` returned the run number).
+Not checked by Claude directly: the Grafana dashboard and Prometheus targets on the EC2 (see the checklist in `docs/TEACHING-GUIDE.md`).
+
+
+## v2.1.2 — 2026-11-16 — Server type from the real server, nothing saved
+**Fixed (bug in v2.0.2 / v2.1.1)**
+- `make all` failed a third time with `not eligible for Free Tier`. v2.0.2 saved the chosen type in `terraform.tfvars`, including the *fallback* `t3.medium`. v2.1.1 then trusted that saved value and never asked AWS for a free-tier type.
+- Nothing is saved any more. Order now: `TF_VAR_instance_type` ➜ type of the server that already exists (read from `terraform.tfstate`, so a re-run never replaces it) ➜ first free-tier x86_64 type with 2 vCPU / 4 GB+ from AWS ➜ t3.medium. An old `instance_type` line in `terraform.tfvars` is overwritten.
+
+**Tested**: 4 cases with a fake `aws` CLI and sample state files, including this exact one (t3.medium in tfvars, no server in state ➜ c7i-flex.large). shellcheck passed.
+
 ## v2.1.1 — 2026-11-16 — Pick a server type that the account allows
 **Fixed**
 - After the VPC fix, `make all` created the network but failed again with `instance type is not eligible for Free Tier`. The earlier `TF_VAR_instance_type=c7i-flex.large` run used the script from before v2.0.2, which did not save the type, so this run fell back to t3.medium.

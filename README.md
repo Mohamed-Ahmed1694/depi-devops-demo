@@ -121,7 +121,7 @@ make destroy
 | Problem | Fix |
 |---|---|
 | `brew install ansible` runs for hours | Stop it (Ctrl+C) and use the `pip` commands in step 0 |
-| `InstanceType ... not eligible for Free Tier` | New AWS accounts on the Free plan can't start t3.medium. List allowed types: `aws ec2 describe-instance-types --filters Name=free-tier-eligible,Values=true --query "InstanceTypes[].[InstanceType,VCpuInfo.DefaultVCpus,MemoryInfo.SizeInMiB]" --output table`, pick one with 2 vCPU and 4 GB or more (e.g. `c7i-flex.large`), then `TF_VAR_instance_type=<type> make all` (it is remembered for later runs). Since v2.1.1 the script picks a free-tier type with 2 vCPU / 4 GB by itself when you set nothing. Or upgrade the account to a paid plan. |
+| `InstanceType ... not eligible for Free Tier` | New AWS accounts on the Free plan can't start t3.medium. List allowed types: `aws ec2 describe-instance-types --filters Name=free-tier-eligible,Values=true --query "InstanceTypes[].[InstanceType,VCpuInfo.DefaultVCpus,MemoryInfo.SizeInMiB]" --output table`, pick one with 2 vCPU and 4 GB or more (e.g. `c7i-flex.large`), then `TF_VAR_instance_type=<type> make all`. Since v2.1.2 the script picks a free-tier type with 2 vCPU / 4 GB by itself when you set nothing, and a re-run keeps the type of the server you already have. Or upgrade the account to a paid plan. |
 | Ansible: `connect to host ... port 22: Operation timed out` (old version) | Fixed in v2.1.0: Terraform now makes its own VPC with an internet route. `git pull`, then `make all`. |
 | Still timing out | Run `make doctor` and read steps 4–9 (firewall rule for port 22, route to the internet, your network, the key). Then `make all` again. |
 | `No AWS region` | `aws configure set region <your-region>` |

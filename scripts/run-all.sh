@@ -35,11 +35,11 @@ else
     && echo "imported key pair depi-test into $REGION" \
     || echo "could not import depi-test (maybe it already exists) - continuing"
 fi
-# Remember the server size so a later run never changes it by accident.
-# Free-plan AWS accounts: TF_VAR_instance_type=c7i-flex.large make all   (see README)
-# Order: TF_VAR_instance_type > saved in tfvars > free-tier type with 2 vCPU / 4 GB+ > t3.medium
-OLD_TYPE="$(sed -n 's/^instance_type *= *"\(.*\)"/\1/p' terraform/terraform.tfvars 2>/dev/null || true)"
-TYPE="${TF_VAR_instance_type:-$OLD_TYPE}"
+# Server size. Order: TF_VAR_instance_type > type of the server that already exists
+# (from the Terraform state, so a re-run never replaces it) > first free-tier type
+# with 2 vCPU / 4 GB+ in this region > t3.medium
+TYPE="${TF_VAR_instance_type:-}"
+[ -n "$TYPE" ] || TYPE="$(sed -n 's/^ *"instance_type": "\(.*\)",$/\1/p' terraform/terraform.tfstate 2>/dev/null | head -1 || true)"
 if [ -z "$TYPE" ]; then
   TYPE="$(aws ec2 describe-instance-types --output text \
     --filters Name=free-tier-eligible,Values=true Name=vcpu-info.default-vcpus,Values=2 \
