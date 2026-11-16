@@ -1,4 +1,5 @@
-// DEPI DevOps Demo - CI/CD pipeline
+// OPTIONAL lesson: the same pipeline in Jenkins (install_jenkins: true in ansible/site.yml).
+// The main CI/CD is GitHub Actions (.github/workflows/ci-cd.yml) - do not use both at once.
 // Every push to GitHub -> test -> build Docker image -> load into K3s -> deploy -> smoke test
 pipeline {
     agent any

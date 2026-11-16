@@ -1,5 +1,38 @@
 # Changelog
 
+## v2.0.0 — 2026-11-16 — GitHub Actions CI/CD + one command
+**Problems found (diagnosis)**
+- The GitHub repo had only the old Jenkins version (1 commit). `.github/workflows/`, `Makefile`, `scripts/run-all.sh` and `scripts/deploy-on-server.sh` did not exist, although the README pointed to them. GitHub Actions had never run (0 runs).
+- `ansible/inventory.ini` was committed. Terraform overwrites it with the server IP, so the IP could get committed by mistake.
+- Terraform had no fix for "key pair `depi-test` not in this region", and the region was hard-coded (`eu-central-1`).
+- Ansible started installing packages straight away. On a new EC2, cloud-init holds the apt lock, so it could fail.
+
+**Added**
+- `.github/workflows/ci-cd.yml`: 1 test (pytest) ➜ 2 build (docker build + run + `/health`) ➜ 3 IaC check (terraform fmt/validate, ansible syntax-check, kubeconform) ➜ 4 deploy (push to `main` only: rsync to `/opt/depi-demo`, run `deploy-on-server.sh <run_number>`, smoke test fails unless `/api` returns `"version":"<run_number>"`, links in the job summary).
+- `scripts/run-all.sh`: one simple script with 8 numbered steps (tools ➜ logins ➜ key ➜ Terraform (asks "yes") ➜ Ansible ➜ GitHub ➜ push + watch ➜ links).
+- `scripts/deploy-on-server.sh`: docker build ➜ `k3s ctr images import` ➜ kubectl apply ➜ rollout status ➜ monitoring.
+- `Makefile`: help, all, check, test, local-up, local-down, configure, ssh, status, destroy.
+- `ansible/inventory.ini.example`.
+
+**Changed**
+- CI/CD is now GitHub Actions. Jenkins is optional (`install_jenkins: false`); the `Jenkinsfile` is kept as an extra lesson.
+- `EC2_HOST` is a GitHub **variable**, not a secret. GitHub prints secrets as `***` in logs, so the links would be unreadable. `EC2_SSH_KEY` stays a secret.
+- Terraform: `aws_region` has no default (the script takes it from `aws configure get region`). New `public_key` variable: if `depi-test` is missing in the region, Terraform imports it from your `.pem`.
+- Ansible: waits for SSH and cloud-init, creates `/opt/depi-demo` owned by `ubuntu` (so Actions can rsync), copies app/k8s/scripts and does the first deploy (version `ansible`).
+- App page: "Version (GitHub Actions run)"; the stack list shows GitHub Actions instead of Jenkins.
+- `check-tools.sh`: gh, python3 and ssh-keygen required; on the server, Jenkins is optional and demo-app is checked.
+- README rewritten: short, step by step, with the architecture diagram.
+- `ansible/inventory.ini` is git-ignored (written by Terraform).
+
+**Tested (in a Linux cloud container, not on the Mac)**
+- `make test`: 4/4 passed.
+- Local stack: `/api` returns the new text; Prometheus target `demo-app` is UP; Grafana dashboard "DEPI Demo App" loads and reads from Prometheus. (The image was built with the sandbox proxy certificate added. That change is not in the repo.)
+- `terraform fmt -check`: passed. `ansible-playbook --syntax-check`: passed. kubeconform: 15/15 valid. `bash -n` on all scripts: passed.
+
+**Not tested yet**
+- `terraform validate`: the sandbox blocks the Terraform registry. CI job 3 runs it.
+- AWS, Ansible against a real EC2, the deploy job, `run-all.sh` on macOS. These need your laptop and AWS account.
+
 ## v1.0.0 — 2026-11-16 — Initial demo project
 **Added**
 - Flask app with an HTML home page, `/api`, `/health` and Prometheus `/metrics`, plus 4 pytest tests and a Dockerfile (non-root user).

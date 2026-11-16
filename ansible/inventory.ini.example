@@ -1,5 +1,5 @@
-# Your AWS server. Set the IP with:  make server IP=<PUBLIC_IP>
-# (or edit SERVER_PUBLIC_IP below by hand)
+# Example only. The real ansible/inventory.ini is written by Terraform
+# (terraform apply) and is git-ignored because it contains your server IP.
 [demo]
 SERVER_PUBLIC_IP ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/depi-test.pem
 

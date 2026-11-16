@@ -14,3 +14,6 @@ __pycache__/
 # OS / editors
 .DS_Store
 .vscode/
+terraform/tfplan
+# Written by Terraform with your server IP - never commit it
+ansible/inventory.ini
