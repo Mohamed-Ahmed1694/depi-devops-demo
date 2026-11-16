@@ -25,6 +25,9 @@ local-down: ## Stop the laptop version
 configure: ## Re-run Ansible on the server
 	cd ansible && ansible-playbook site.yml
 
+jenkins: ## Install Jenkins on the server (optional lesson, port 8080)
+	cd ansible && ansible-playbook site.yml -e install_jenkins=true
+
 ssh: ## Log in to the server
 	$(SSH)
 
@@ -37,4 +40,4 @@ doctor: ## Find why SSH/Ansible can't reach the server (read-only)
 destroy: ## DELETE the EC2 (do this after the lesson!)
 	cd terraform && terraform destroy
 
-.PHONY: help all check test local-up local-down configure ssh status doctor destroy
+.PHONY: help all check test local-up local-down configure jenkins ssh status doctor destroy

@@ -48,12 +48,24 @@
         mode: preserve
       loop: [app, k8s, scripts]
 
-    - name: First deploy (app version "ansible" + Prometheus + Grafana)
+    - name: Is the app already deployed? (then GitHub Actions owns it - do not reset it)
+      ansible.builtin.command: k3s kubectl -n demo get deployment demo-app
+      register: app_exists
+      changed_when: false
+      failed_when: false
+
+    - name: First deploy (app version "ansible" + Prometheus + Grafana) - only on a new server
       ansible.builtin.command: bash {{ app_dir }}/scripts/deploy-on-server.sh ansible
       args:
         chdir: "{{ app_dir }}"
-      register: first_deploy
       changed_when: true
+      when: app_exists.rc != 0
+
+    - name: Keep monitoring up to date (Prometheus + Grafana)
+      ansible.builtin.command: k3s kubectl apply -k {{ app_dir }}/k8s/monitoring
+      register: monitoring
+      changed_when: "'configured' in monitoring.stdout or 'created' in monitoring.stdout"
+      when: app_exists.rc == 0
 
     - name: Read Jenkins initial admin password
       ansible.builtin.slurp:

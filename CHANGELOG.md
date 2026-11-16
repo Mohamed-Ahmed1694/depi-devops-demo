@@ -1,5 +1,16 @@
 # Changelog
 
+## v2.2.0 — 2026-11-16 — Optional Jenkins, safe Ansible re-runs
+**Added**
+- `make jenkins`: runs the playbook with `install_jenkins=true` (Java 21, Jenkins LTS, Docker + K3s access, kubeconfig). Ansible prints the initial admin password. README section "Optional lesson — Jenkins" with the job setup.
+
+**Fixed**
+- Re-running Ansible (`make configure` / `make jenkins`) ran the "first deploy" again and reset the live app to version `ansible`. It now only deploys when the app does not exist yet; otherwise it just updates Prometheus + Grafana.
+- `Jenkinsfile` checked GitHub every 2 minutes (`pollSCM`) and would deploy to the same app as GitHub Actions on every push. The trigger is removed: Jenkins builds only on **Build Now**.
+- Jenkins apt key: the role tries `jenkins.io-2026.key` and falls back to `jenkins.io-2023.key` if the download fails. (The URLs could not be checked from Claude's environment: `pkg.jenkins.io` is blocked there.)
+
+**Tested**: `ansible-playbook --syntax-check` and `--list-tasks` with `install_jenkins=true`. Not run against the server yet.
+
 ## ✅ 2026-11-16 — First full end-to-end run
 `make all` on the teacher's Mac (macOS Intel, AWS Free plan, eu-north-1, c7i-flex.large) finished:
 Terraform (own VPC + EC2) ➜ Ansible (Docker, K3s, Prometheus, Grafana, first deploy) ➜ GitHub variable/secret ➜ GitHub Actions run 43905007080: jobs 1 test, 2 build, 3 IaC checks and **4 deploy + smoke test all green** (the live `/api` returned the run number).

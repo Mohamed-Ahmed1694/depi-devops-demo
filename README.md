@@ -110,7 +110,8 @@ make destroy
 | `make all` | Everything |
 | `make test` | Unit tests |
 | `make local-up` / `make local-down` | Laptop version |
-| `make configure` | Run Ansible again |
+| `make configure` | Run Ansible again (does not reset the running app) |
+| `make jenkins` | Install Jenkins on the server (optional lesson) |
 | `make ssh` | Log in to the server |
 | `make status` | Show the pods |
 | `make doctor` | Find why SSH / Ansible can't reach the server (changes nothing) |
@@ -135,7 +136,23 @@ make destroy
 ## Demo shortcuts (tell the students)
 Real projects would also: use a real Grafana password, open ports only to your IP (`allowed_cidr`), push images to a registry (ECR), and keep Terraform state in S3.
 
-*Optional:* `Jenkinsfile` + `install_jenkins: true` in `ansible/site.yml` shows the same pipeline in Jenkins (port 8080). Off by default.
+## 🧩 Optional lesson — Jenkins
+
+Same pipeline, other tool. Jenkins is not installed by default.
+
+1. Install it (about 3–5 minutes, uses about 1 GB of the server's memory):
+   ```bash
+   make jenkins
+   ```
+   At the end Ansible prints the Jenkins link and the **initial admin password**.
+2. Open `http://<IP>:8080`, paste the password, click **Install suggested plugins**, create your admin user.
+3. **New Item** ➜ name `depi-demo` ➜ **Pipeline** ➜ OK. Under *Pipeline*: **Pipeline script from SCM**, SCM **Git**, Repository URL `https://github.com/<your-user>/depi-devops-demo.git`, Branch `*/main`, Script Path `Jenkinsfile` ➜ **Save**.
+4. Click **Build Now**. Stages: Unit Tests ➜ Build Docker Image ➜ Load Image into K3s ➜ Deploy ➜ Smoke Test.
+5. The app page now shows the **Jenkins build number** as the version.
+
+Jenkins runs only when you click **Build Now** (no automatic trigger), so it never deploys at the same time as GitHub Actions. The next `git push` makes GitHub Actions deploy again with its own run number.
+
+Compare with students: GitHub Actions = hosted runners, YAML in the repo, nothing to install. Jenkins = your own server, plugins, UI, you maintain it.
 
 ---
 **Author:** Mohamed Rahim · DEPI DevOps Track
