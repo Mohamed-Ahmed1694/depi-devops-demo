@@ -116,6 +116,7 @@ make destroy
 | `make status` | Show the pods |
 | `make doctor` | Find why SSH / Ansible can't reach the server (changes nothing) |
 | `make destroy` | Delete the server |
+| `make aws-check` | After destroy: list anything that still costs money, in every AWS region (changes nothing) |
 
 ## If something goes wrong
 
