@@ -10,7 +10,7 @@ die() { printf "\033[0;31m❌ %s\033[0m\n" "$*"; exit 1; }
 
 say "1. Tools"
 for t in git gh terraform ansible-playbook aws ssh-keygen curl; do
-  command -v "$t" >/dev/null || die "$t is missing. macOS: brew install git gh terraform ansible awscli"
+  command -v "$t" >/dev/null || die "$t is missing. See README step 0 (Ansible: install with pip, not brew)"
 done
 echo "all tools found"
 

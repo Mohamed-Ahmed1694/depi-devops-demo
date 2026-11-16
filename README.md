@@ -40,9 +40,16 @@ flowchart LR
 ## 0️⃣ Install the tools (once)
 
 ```bash
-brew install git gh terraform ansible awscli
+brew install git gh terraform awscli
 brew install --cask docker
 ```
+Ansible (works on Intel and Apple Silicon Macs, about 1 minute):
+```bash
+python3 -m venv ~/.ansible-venv
+~/.ansible-venv/bin/pip install --upgrade pip ansible-core
+ln -sf ~/.ansible-venv/bin/ansible ~/.ansible-venv/bin/ansible-playbook /usr/local/bin/
+```
+> Why not `brew install ansible`? On Intel Macs Homebrew has no ready-made packages any more, so it compiles LLVM and Rust from source (hours).
 Put `depi-test.pem` in `~/.ssh/` or `~/Downloads/`. Check with `make check`.
 
 ## 1️⃣ Try it on your laptop (free)
@@ -110,6 +117,7 @@ make destroy
 
 | Problem | Fix |
 |---|---|
+| `brew install ansible` runs for hours | Stop it (Ctrl+C) and use the `pip` commands in step 0 |
 | `No AWS region` | `aws configure set region <your-region>` |
 | Push of the workflow refused | `gh auth refresh -s workflow` |
 | `Push refused` | `git pull --rebase origin main`, then `make all` |
