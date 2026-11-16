@@ -51,7 +51,7 @@ Plain text version (for a whiteboard):
 |---|---|
 | **Linux** | Every server in the cloud runs Linux. Ours is Ubuntu 24.04. |
 | **AWS** | We rent a computer (EC2) by the hour instead of buying one. |
-| **Terraform** | We *describe* the server in a file, and Terraform creates it. Same file = same server, every time. |
+| **Terraform** | We *describe* the network and the server in files, and Terraform creates them: a VPC (our private network), an internet gateway (the door to the internet), a route (the sign "internet ➜ door"), a firewall (security group) and the EC2. Same files = same result, every time. |
 | **Ansible** | Terraform gives us an empty server. Ansible logs in by SSH and installs everything, so we never type it by hand. |
 | **Docker** | Packs the app and everything it needs into one image that runs the same everywhere. |
 | **K3s (Kubernetes)** | Runs our containers, keeps 2 copies alive, restarts them if they die, and updates them with zero downtime. |
@@ -112,7 +112,7 @@ Open http://localhost:5000. Say: *"Always test locally before you push."* Then `
 cd terraform && terraform output && cd ..
 make status
 ```
-Show the EC2 in the AWS console. Say: *"Terraform made this. Ansible set it up. Nobody clicked anything."*
+Show the EC2 and the VPC `depi-devops-demo-vpc` in the AWS console (VPC ➜ Route tables: the `0.0.0.0/0 ➜ igw-…` line is what makes it reachable). Say: *"Terraform made this. Ansible set it up. Nobody clicked anything."*
 
 ### Scene 4 — Change the code live ⭐ (10 min)
 Students open `http://<IP>:30080`. You edit the top of `app/app.py`:
