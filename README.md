@@ -113,6 +113,7 @@ make destroy
 | `make configure` | Run Ansible again |
 | `make ssh` | Log in to the server |
 | `make status` | Show the pods |
+| `make doctor` | Find why SSH / Ansible can't reach the server (changes nothing) |
 | `make destroy` | Delete the server |
 
 ## If something goes wrong
@@ -121,6 +122,7 @@ make destroy
 |---|---|
 | `brew install ansible` runs for hours | Stop it (Ctrl+C) and use the `pip` commands in step 0 |
 | `InstanceType ... not eligible for Free Tier` | New AWS accounts on the Free plan can't start t3.medium. List allowed types: `aws ec2 describe-instance-types --filters Name=free-tier-eligible,Values=true --query "InstanceTypes[].[InstanceType,VCpuInfo.DefaultVCpus,MemoryInfo.SizeInMiB]" --output table`, pick one with 2 vCPU and 4 GB or more (e.g. `c7i-flex.large`), then `TF_VAR_instance_type=<type> make all` (it is remembered for later runs). Or upgrade the account to a paid plan. |
+| Ansible: `connect to host ... port 22: Operation timed out` | Run `make doctor` and read steps 4–9 (firewall rule for port 22, route to the internet, your network, the key). Then `make all` again. |
 | `No AWS region` | `aws configure set region <your-region>` |
 | Push of the workflow refused | `gh auth refresh -s workflow` |
 | `Push refused` | `git pull --rebase origin main`, then `make all` |

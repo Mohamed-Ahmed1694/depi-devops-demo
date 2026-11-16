@@ -1,5 +1,17 @@
 # Changelog
 
+## v2.0.3 — 2026-11-16 — `make doctor`
+**Context**
+- The server was created (eu-north-1, `13.61.24.143`), but Ansible failed: `ssh: connect to host ... port 22: Operation timed out` after 309 s. The cause is not known yet; it needs data from the AWS account and the laptop.
+- The second `InvalidKeyPair.Duplicate` happened because the Mac ran the code from before v2.0.2 (PR #3 was not merged yet). Root cause found: Terraform's state lists `aws_key_pair.imported` as a dependency of the instance, so the old script's `grep aws_key_pair terraform.tfstate` matched and asked Terraform to import the key again. v2.0.2 removed that logic.
+
+**Added**
+- `scripts/doctor.sh` / `make doctor`: read-only checks (instance state and health, security-group rules, routes to the internet, network ACL, your public IP, key fingerprints local vs AWS, SSH to GitHub, SSH to the server, server boot log).
+- Terraform output `instance_id`.
+- README: `make doctor` command and troubleshooting row.
+
+**Tested**: `bash -n`, shellcheck, `terraform fmt`; the AWS CLI queries checked against sample AWS JSON with the jmespath library. Not run against a real AWS account (no access from this environment).
+
 ## v2.0.2 — 2026-11-16 — Key pair "Duplicate" error
 **Fixed**
 - `make all` failed with `InvalidKeyPair.Duplicate: The keypair already exists`. The script's check `aws ec2 describe-key-pairs` failed even though `depi-test` existed, so it told Terraform to import the key again. Terraform no longer manages the key pair at all (removed `aws_key_pair.imported` and `var.public_key`). The script imports `depi-test` with the AWS CLI only if it is missing, and just continues if AWS says it already exists.
