@@ -1,5 +1,11 @@
 # Changelog
 
+## ✅ 2026-11-16 — First full end-to-end run
+`make all` on the teacher's Mac (macOS Intel, AWS Free plan, eu-north-1, c7i-flex.large) finished:
+Terraform (own VPC + EC2) ➜ Ansible (Docker, K3s, Prometheus, Grafana, first deploy) ➜ GitHub variable/secret ➜ GitHub Actions run 43905007080: jobs 1 test, 2 build, 3 IaC checks and **4 deploy + smoke test all green** (the live `/api` returned the run number).
+Not checked by Claude directly: the Grafana dashboard and Prometheus targets on the EC2 (see the checklist in `docs/TEACHING-GUIDE.md`).
+
+
 ## v2.1.2 — 2026-11-16 — Server type from the real server, nothing saved
 **Fixed (bug in v2.0.2 / v2.1.1)**
 - `make all` failed a third time with `not eligible for Free Tier`. v2.0.2 saved the chosen type in `terraform.tfvars`, including the *fallback* `t3.medium`. v2.1.1 then trusted that saved value and never asked AWS for a free-tier type.
