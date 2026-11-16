@@ -1,14 +1,11 @@
-// OPTIONAL lesson: the same pipeline in Jenkins (install_jenkins: true in ansible/site.yml).
-// The main CI/CD is GitHub Actions (.github/workflows/ci-cd.yml) - do not use both at once.
-// Every push to GitHub -> test -> build Docker image -> load into K3s -> deploy -> smoke test
+// OPTIONAL lesson: the same pipeline in Jenkins. Install Jenkins with: make jenkins
+// The main CI/CD is GitHub Actions (.github/workflows/ci-cd.yml). Jenkins runs only when you click Build Now.
+// Build Now -> test -> build Docker image -> load into K3s -> deploy -> smoke test
 pipeline {
     agent any
 
-    triggers {
-        // Checks GitHub every 2 minutes for new commits.
-        // (Optional) add a GitHub webhook for instant builds - see README.
-        pollSCM('H/2 * * * *')
-    }
+    // No automatic trigger on purpose: GitHub Actions deploys on every push.
+    // In Jenkins you click "Build Now", so the two pipelines never deploy at the same time.
 
     environment {
         IMAGE      = 'depi-demo-app'

@@ -10,11 +10,20 @@
     state: directory
     mode: "0755"
 
-- name: Add Jenkins apt key (2026 signing key)
-  ansible.builtin.get_url:
-    url: https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key
-    dest: /etc/apt/keyrings/jenkins-keyring.asc
-    mode: "0644"
+# Jenkins changes its signing key from time to time. Try the newest one, fall back to the 2023 one.
+- name: Add Jenkins apt key
+  block:
+    - name: Download the 2026 signing key
+      ansible.builtin.get_url:
+        url: https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key
+        dest: /etc/apt/keyrings/jenkins-keyring.asc
+        mode: "0644"
+  rescue:
+    - name: Download the 2023 signing key instead
+      ansible.builtin.get_url:
+        url: https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+        dest: /etc/apt/keyrings/jenkins-keyring.asc
+        mode: "0644"
 
 - name: Add Jenkins LTS apt repository
   ansible.builtin.apt_repository:
