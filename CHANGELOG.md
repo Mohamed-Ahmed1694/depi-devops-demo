@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.0.2 — 2026-11-16 — Key pair "Duplicate" error
+**Fixed**
+- `make all` failed with `InvalidKeyPair.Duplicate: The keypair already exists`. The script's check `aws ec2 describe-key-pairs` failed even though `depi-test` existed, so it told Terraform to import the key again. Terraform no longer manages the key pair at all (removed `aws_key_pair.imported` and `var.public_key`). The script imports `depi-test` with the AWS CLI only if it is missing, and just continues if AWS says it already exists.
+- Running `make all` again without `TF_VAR_instance_type` would have switched the server back to t3.medium (Terraform replaces the server, and the Free plan refuses t3.medium). The script now saves `instance_type` in `terraform/terraform.tfvars` and reuses it on later runs.
+
+**Tested**: the key/instance-type step with a fake `aws` CLI in 5 cases (key exists; TF_VAR set; rerun remembers type; key missing → import; import says Duplicate → continue). `shellcheck`, `terraform fmt` passed. `terraform validate` runs in CI.
+
 ## v2.0.1 — 2026-11-16 — Ansible install on Intel Macs, AWS Free plan
 **Fixed**
 - First real `make all` failed at `aws_instance.demo`: `InvalidParameterCombination: The specified instance type is not eligible for Free Tier`. AWS accounts on the Free plan can only launch free-tier-eligible types, and t3.medium is not one. Documented the fix in the README: list eligible types, then `TF_VAR_instance_type=<type> make all` (2 vCPU / 4 GB or more), or upgrade the account. The security group created before the error stays in the Terraform state and is reused.
