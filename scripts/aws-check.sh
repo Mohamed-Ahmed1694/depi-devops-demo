@@ -4,6 +4,13 @@
 # Free and normal, so not listed: the default VPC of each region, key pairs, empty security groups.
 found=0
 for r in $(aws ec2 describe-regions --query 'Regions[].RegionName' --output text); do
+  # Some organizations block regions (service control policy). Nothing can exist there, so skip them.
+  if ! err="$(aws ec2 describe-vpcs --region "$r" --max-results 5 --output text 2>&1 >/dev/null)"; then
+    case "$err" in
+      *UnauthorizedOperation*|*AuthFailure*|*OptInRequired*) echo "== $r: skipped (blocked for your user)"; continue ;;
+      *) echo "== $r: ERROR $err"; found=1; continue ;;
+    esac
+  fi
   out="$(
     aws ec2 describe-instances --region "$r" --output text \
       --filters Name=instance-state-name,Values=pending,running,stopping,stopped \

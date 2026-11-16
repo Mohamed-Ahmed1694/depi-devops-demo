@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.2.2 — 2026-11-16 — `make aws-check` skips blocked regions
+**Fixed**
+- On the teacher's account, an AWS Organizations service control policy denies some regions, so `make aws-check` printed `UnauthorizedOperation` errors between the results. It now tests each region first and prints `skipped (blocked for your user)`. Any other error is printed and counted.
+
+**Found by the first real run** (not part of this project, from earlier labs, eu-north-1): 2 stopped t3.micro servers with 8 GB disks, 1 Elastic IP, 2 extra VPCs. The project's own VPC and server were already gone after `make destroy`.
+
+**Tested**: bash -n, shellcheck, and a fake `aws` CLI (allowed region, blocked region, other error).
+
 ## v2.2.1 — 2026-11-16 — `make aws-check`
 **Added**
 - `scripts/aws-check.sh` / `make aws-check`: read-only check of **every** AWS region for EC2 servers, EBS disks, snapshots, Elastic IPs, NAT gateways, load balancers and non-default VPCs. Use it after `make destroy`. It deletes nothing.
