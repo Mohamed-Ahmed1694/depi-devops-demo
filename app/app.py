@@ -15,7 +15,7 @@ BG_COLOR = "#1e3a8a"   # try "#065f46" (green) or "#7c2d12" (orange)
 
 APP_VERSION = os.getenv("APP_VERSION", "dev")
 STACK = ["Linux", "Terraform", "AWS", "Ansible", "Docker",
-         "K3s", "Jenkins", "Prometheus", "Grafana"]
+         "K3s", "GitHub Actions", "Prometheus", "Grafana"]
 
 app = Flask(__name__)
 
@@ -40,7 +40,7 @@ PAGE = """<!doctype html>
 </style></head>
 <body><div class="card">
  <h1>{{message}}</h1>
- <p class="meta">Version (Jenkins build): <b>{{version}}</b></p>
+ <p class="meta">Version (GitHub Actions run): <b>{{version}}</b></p>
  <p class="meta">Served by pod: <b>{{pod}}</b></p>
  <div>{% for t in stack %}<span class="tag">{{t}}</span>{% endfor %}</div>
  <p class="meta" style="font-size:.85rem">Page refreshes every 10s · JSON at /api · metrics at /metrics</p>

@@ -9,7 +9,7 @@ output "ssh_command" {
 output "urls" {
   value = {
     app        = "http://${aws_instance.demo.public_ip}:30080"
-    jenkins    = "http://${aws_instance.demo.public_ip}:8080"
+    jenkins    = "http://${aws_instance.demo.public_ip}:8080 (only if install_jenkins=true)"
     prometheus = "http://${aws_instance.demo.public_ip}:30090"
     grafana    = "http://${aws_instance.demo.public_ip}:30030"
   }

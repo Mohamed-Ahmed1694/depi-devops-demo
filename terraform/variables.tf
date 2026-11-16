@@ -1,7 +1,6 @@
 variable "aws_region" {
-  description = "AWS region to deploy into"
+  description = "AWS region to deploy into (run-all.sh takes it from 'aws configure get region')"
   type        = string
-  default     = "eu-central-1"
 }
 
 variable "project_name" {
@@ -11,7 +10,7 @@ variable "project_name" {
 }
 
 variable "instance_type" {
-  description = "EC2 size. t3.medium (2 vCPU / 4 GB) is the minimum for K3s + Jenkins + monitoring"
+  description = "EC2 size. t3.medium (2 vCPU / 4 GB) is the minimum for K3s + monitoring (+ optional Jenkins)"
   type        = string
   default     = "t3.medium"
 }
@@ -26,6 +25,12 @@ variable "private_key_path" {
   description = "Path to your SSH private key (written into the Ansible inventory)"
   type        = string
   default     = "~/.ssh/depi-test.pem"
+}
+
+variable "public_key" {
+  description = "Leave empty to use the existing key pair. Set to an OpenSSH public key to import it as key_name."
+  type        = string
+  default     = ""
 }
 
 variable "allowed_cidr" {

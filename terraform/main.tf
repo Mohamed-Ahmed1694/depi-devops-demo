@@ -29,7 +29,7 @@ data "aws_ami" "ubuntu" {
 
 resource "aws_security_group" "demo" {
   name        = "${var.project_name}-sg"
-  description = "DEPI DevOps demo - SSH, app, Jenkins, Prometheus, Grafana"
+  description = "DEPI DevOps demo - SSH, app, Jenkins (optional), Prometheus, Grafana"
 
   dynamic "ingress" {
     for_each = var.open_ports
@@ -52,10 +52,19 @@ resource "aws_security_group" "demo" {
   tags = { Project = var.project_name }
 }
 
+# Use the EXISTING key pair "depi-test" in this region.
+# If it does not exist there (key pairs are per region), run-all.sh passes the
+# public half of your .pem in var.public_key and Terraform imports it here.
+resource "aws_key_pair" "imported" {
+  count      = var.public_key == "" ? 0 : 1
+  key_name   = var.key_name
+  public_key = var.public_key
+}
+
 resource "aws_instance" "demo" {
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = var.instance_type
-  key_name               = var.key_name
+  key_name               = var.public_key == "" ? var.key_name : aws_key_pair.imported[0].key_name
   vpc_security_group_ids = [aws_security_group.demo.id]
 
   root_block_device {

@@ -1,0 +1,143 @@
+# DEPI DevOps Demo - CI/CD
+# Every push: 1 test -> 2 build -> 3 iac checks -> 4 deploy (push to main only)
+# Deploy needs (`make all` sets them for you):
+#   variable EC2_HOST    public IP of the server (a variable, not a secret, so the
+#                        URLs are readable in logs - GitHub prints secrets as ***)
+#   secret   EC2_SSH_KEY contents of depi-test.pem
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:        # "Run workflow" button in the Actions tab
+
+concurrency:
+  group: ci-cd-${{ github.ref }}
+  cancel-in-progress: false # never cut a deploy in half
+
+jobs:
+  test:
+    name: 1 - Unit tests (pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r app/requirements.txt
+      - name: Run tests
+        working-directory: app
+        run: pytest -v
+
+  build:
+    name: 2 - Docker build + run
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build --build-arg APP_VERSION=${{ github.run_number }} -t depi-demo-app:ci app/
+      - name: Run container and check /health
+        run: |
+          docker run -d --name app -p 5000:5000 depi-demo-app:ci
+          for i in $(seq 1 15); do
+            curl -fs http://localhost:5000/health && exit 0
+            sleep 2
+          done
+          docker logs app
+          exit 1
+
+  iac:
+    name: 3 - Validate Terraform / Ansible / K8s
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+      - name: Terraform fmt + validate
+        working-directory: terraform
+        run: |
+          terraform fmt -check -recursive
+          terraform init -backend=false -input=false
+          terraform validate
+
+      - name: Ansible syntax check
+        working-directory: ansible
+        run: |
+          pip install ansible-core
+          ansible-playbook -i inventory.ini.example site.yml --syntax-check
+
+      - name: Kubernetes manifests (kubeconform)
+        run: |
+          curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar xz
+          kubectl kustomize k8s/monitoring > /tmp/monitoring.yaml
+          ./kubeconform -strict -summary /tmp/monitoring.yaml k8s/app/app.yaml
+
+  deploy:
+    name: 4 - Deploy to K3s on EC2
+    needs: [test, build, iac]
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    env:
+      EC2_HOST: ${{ vars.EC2_HOST || secrets.EC2_HOST }}
+      EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+      VERSION: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the secrets exist
+        run: |
+          if [ -z "$EC2_HOST" ] || [ -z "$EC2_SSH_KEY" ]; then
+            echo "::error::EC2_HOST (variable) and/or EC2_SSH_KEY (secret) are missing. Run 'make all' on your laptop."
+            exit 1
+          fi
+
+      - name: Write the SSH key
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/depi-test.pem
+          chmod 600 ~/.ssh/depi-test.pem
+
+      - name: Copy the repo to the server
+        run: |
+          rsync -az --delete --exclude .git \
+            -e "ssh -i ~/.ssh/depi-test.pem -o StrictHostKeyChecking=no" \
+            ./ ubuntu@"$EC2_HOST":/opt/depi-demo/
+
+      - name: Build + deploy on the server
+        run: |
+          ssh -i ~/.ssh/depi-test.pem -o StrictHostKeyChecking=no ubuntu@"$EC2_HOST" \
+            "bash /opt/depi-demo/scripts/deploy-on-server.sh $VERSION"
+
+      - name: Smoke test (the live app must report this run number)
+        run: |
+          for i in $(seq 1 12); do
+            body=$(curl -fs --max-time 5 "http://$EC2_HOST:30080/api" || true)
+            echo "attempt $i: $body"
+            if echo "$body" | grep -q "\"version\":\"$VERSION\""; then
+              echo "Version $VERSION is live"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::http://$EC2_HOST:30080/api does not report version $VERSION"
+          exit 1
+
+      - name: Summary
+        if: success()
+        run: |
+          {
+            echo "## Deployed version $VERSION"
+            echo "| What | URL |"
+            echo "|---|---|"
+            echo "| App | http://$EC2_HOST:30080 |"
+            echo "| App JSON | http://$EC2_HOST:30080/api |"
+            echo "| Prometheus | http://$EC2_HOST:30090 |"
+            echo "| Grafana (admin/admin) | http://$EC2_HOST:30030 |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove the SSH key
+        if: always()
+        run: rm -f ~/.ssh/depi-test.pem

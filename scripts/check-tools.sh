@@ -25,19 +25,29 @@ echo
 
 echo "== Laptop / client tools =="
 check Git        git        "git --version"
-check GitHub-CLI gh         "gh --version" optional
+check GitHub-CLI gh         "gh --version"
 check Terraform  terraform  "terraform version"
 check Ansible    ansible    "ansible --version"
 check AWS-CLI    aws        "aws --version"
 check Docker     docker     "docker --version"
 check kubectl    kubectl    "kubectl version --client"  optional
 check curl       curl       "curl --version"
+check Python3    python3    "python3 --version"
+check ssh-keygen ssh-keygen "echo ok"
 
 if [ "$1" = "--server" ]; then
   echo; echo "== Server tools =="
   check K3s     k3s    "k3s --version"
-  systemctl is-active --quiet jenkins && printf "${GREEN}✅ %-12s${NC} service running\n" "Jenkins" \
-    || printf "${RED}❌ %-12s${NC} service not running\n" "Jenkins"
+  if systemctl list-unit-files jenkins.service >/dev/null 2>&1 && systemctl is-active --quiet jenkins; then
+    printf "${GREEN}✅ %-12s${NC} service running\n" "Jenkins"
+  else
+    printf "${YELLOW}➖ %-12s${NC} not running (optional, install_jenkins=false)\n" "Jenkins"
+  fi
+  if sudo k3s kubectl -n demo get deploy demo-app >/dev/null 2>&1; then
+    printf "${GREEN}✅ %-12s${NC} running in K3s (namespace demo)\n" "demo-app"
+  else
+    printf "${RED}❌ %-12s${NC} not deployed\n" "demo-app"; missing=$((missing+1))
+  fi
   for svc in prometheus grafana; do
     if sudo k3s kubectl -n monitoring get deploy "$svc" >/dev/null 2>&1; then
       printf "${GREEN}✅ %-12s${NC} running in K3s (namespace monitoring)\n" "$svc"
@@ -61,5 +71,5 @@ fi
 
 echo
 [ $missing -eq 0 ] && printf "${GREEN}All required tools found.${NC}\n" \
-  || printf "${RED}%d required tool(s) missing - see README 'Install the tools'.${NC}\n" $missing
+  || printf "${RED}%d required tool(s) missing - see README 'Step 0'.${NC}\n" $missing
 exit $missing

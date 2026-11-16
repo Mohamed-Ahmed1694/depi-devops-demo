@@ -1,38 +1,72 @@
 ---
-# One playbook that turns a fresh Ubuntu EC2 into the full demo server:
-#   Linux basics -> Docker -> K3s -> Jenkins -> Prometheus + Grafana
+# One playbook that turns a fresh Ubuntu EC2 into the demo server:
+#   Linux basics -> Docker -> K3s -> (optional Jenkins) -> Prometheus + Grafana -> first app deploy
+# After this, GitHub Actions does every deploy (see .github/workflows/ci-cd.yml).
 - name: Configure the DEPI DevOps demo server
   hosts: demo
   become: true
+  gather_facts: false          # the server may still be booting; facts come after the wait
+  vars:
+    install_jenkins: false     # Jenkins is an optional extra lesson (see Jenkinsfile)
+    app_dir: /opt/depi-demo
+
+  pre_tasks:
+    - name: Wait for SSH (a new EC2 needs ~1 minute to boot)
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+
+    - name: Wait for cloud-init to finish (it holds the apt lock on first boot)
+      ansible.builtin.command: cloud-init status --wait
+      changed_when: false
+      failed_when: false
+
+    - name: Gather facts
+      ansible.builtin.setup:
+
   roles:
     - common
     - docker
     - k3s
-    - jenkins
+    - role: jenkins
+      when: install_jenkins | bool
 
   post_tasks:
-    - name: Copy Kubernetes manifests to the server
-      ansible.builtin.copy:
-        src: ../k8s/
-        dest: /opt/depi-demo/k8s/
-        mode: "0644"
+    - name: Create the app folder (owned by ubuntu so GitHub Actions can rsync into it)
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: "0755"
 
-    - name: Deploy monitoring stack (Prometheus + Grafana)
-      ansible.builtin.command: k3s kubectl apply -k /opt/depi-demo/k8s/monitoring
-      register: monitoring
-      changed_when: "'configured' in monitoring.stdout or 'created' in monitoring.stdout"
+    - name: Copy the app, manifests and deploy script to the server
+      ansible.builtin.copy:
+        src: "../{{ item }}/"
+        dest: "{{ app_dir }}/{{ item }}/"
+        owner: ubuntu
+        group: ubuntu
+        mode: preserve
+      loop: [app, k8s, scripts]
+
+    - name: First deploy (app version "ansible" + Prometheus + Grafana)
+      ansible.builtin.command: bash {{ app_dir }}/scripts/deploy-on-server.sh ansible
+      args:
+        chdir: "{{ app_dir }}"
+      register: first_deploy
+      changed_when: true
 
     - name: Read Jenkins initial admin password
       ansible.builtin.slurp:
         src: /var/lib/jenkins/secrets/initialAdminPassword
       register: jenkins_pw
       failed_when: false
+      when: install_jenkins | bool
 
     - name: Show access details
       ansible.builtin.debug:
         msg:
-          - "Jenkins    : http://{{ inventory_hostname }}:8080"
-          - "Jenkins initial admin password: {{ (jenkins_pw.content | default('') | b64decode | trim) or 'already set up' }}"
-          - "App        : http://{{ inventory_hostname }}:30080  (after the first Jenkins build)"
+          - "App        : http://{{ inventory_hostname }}:30080"
           - "Prometheus : http://{{ inventory_hostname }}:30090"
           - "Grafana    : http://{{ inventory_hostname }}:30030  (admin / admin)"
+          - "SSH        : ssh -i {{ ansible_ssh_private_key_file }} ubuntu@{{ inventory_hostname }}"
+          - "{{ ('Jenkins    : http://' ~ inventory_hostname ~ ':8080  password: ' ~ ((jenkins_pw.content | default('')) | b64decode | trim)) if install_jenkins | bool else 'Jenkins    : not installed (install_jenkins=false)' }}"
